@@ -22,23 +22,6 @@ class GameOverScene:
         # Day1〜Day3 時点では「タイトルへ戻る or ゲームをリトライする」だけを担当する。
         self.nav = navigator
         # Day5:TODO 必要ならここに「直前スコア」「ベスト更新フラグ」などのフィールドを追加してよい。
-
-        # Day6:TODO （発展）GameOver で “NEW RECORD!” を出す + 保存する
-        # -----------------------------------------------------------------
-        # ねらい：
-        # - Day5 で best を作ったら、GameOver で “更新した！” を見せたい
-        # - Day6 では “更新した best をファイルへ保存” までやる
-        #
-        # 設計例：
-        # - ScoringService.register_game_over() -> bool を呼ぶ（True=更新）
-        # - True のとき self.is_new_record=True にして、画面側が演出する
-        # - その直後に scoring.save_best("save/best_score.json") を呼ぶ
-        #
-        # 注意：
-        # - 画面（UI）とロジック（保存）は役割分担すると読みやすくなる
-        # - 例外で落ちない設計にする（保存失敗してもゲームは動く）
-        # -----------------------------------------------------------------
-
         # 例:
         # self.last_score = 0
         # self.is_new_record = False

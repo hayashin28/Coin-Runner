@@ -14,48 +14,7 @@ Day3〜Day5 用のスコア計算クラス。
 
 ここでは生徒が読みやすいように、最小限の実装 + コメントだけを置いている。
 実際の Day5 の作業では、このクラスを拡張してもよい。
-    今回のスコアを 0 に戻す
-    ハイスコア（best）は残る
-
-障害物をよけた瞬間
-    scoring.add_for_avoid()
-    スコアが +10（DEFAULT_AVOID_POINT）
-
-GameOver 時
-    is_new_record = scoring.register_game_over()
-
-    True  -> ハイスコア更新
-    False -> 更新なし
-
-表示（HUD / GameOver 画面）
-    scoring.current  # 今回のスコア
-    scoring.best     # ハイスコア
-
-【用語解説】
-
-class
-    設計図。
-    「スコアをどう扱うか」をまとめたもの。
-
-dataclass
-    数字を入れる箱を簡単に作る仕組み。
-    例: Score(value=10)
-
-property
-    「変数みたいに使える関数」。
-    実際は関数だが、scoring.current のように書ける。
-    読み取り専用の値として使わせたいときに便利。
-
-reset()
-    「今回のプレイを最初からやり直す」。
-
-register_game_over()
-    「ゲームが終わったことをスコアに知らせる」。
-    ベスト更新チェックを行い、True / False を返す。
-
-best（ハイスコア）
-    今までで一番良かったスコア。
-    リトライしても消えない。"""
+"""
 
 from dataclasses import dataclass
 
@@ -89,12 +48,10 @@ class ScoringService:
     def __init__(self, avoid_point: int = DEFAULT_AVOID_POINT):
         # 現在スコア用の Score インスタンス
         self._score = Score()
-        # Day5:TODO ベストスコア用の変数を追加したい場合はここにフィールドを足す
-        # 例: self._best = Score()
-        self._best = Score()
         # 1回よけるごとの加点幅
         self._avoid_point = int(avoid_point)
-       
+        # Day5:TODO ベストスコア用の変数を追加したい場合はここにフィールドを足す
+        # 例: self._best = Score()
 
     def reset(self) -> None:
         """現在スコアだけを 0 に戻す。
@@ -126,17 +83,14 @@ class ScoringService:
 
     # Day5:TODO ここに「best（ハイスコア）」関連の API を追加するアイデア
     # 例:
-    @property
-    def best(self) -> int:
+    # @property
+    # def best(self) -> int:
     #     """今までのプレイで到達した最高スコアを返す。"""
-         return self._best.value
+    #     return self._best.value
     #
-    def register_game_over(self) -> bool:
-    #"""
-    # ゲーム終了時に呼び出し
-    # 今回のスコアがベスト更新なら True を返す。
-    # """
-       if self._score.value > self._best.value:
-             self._best.value = self._score.value
-             return True
-       return False
+    # def register_game_over(self) -> bool:
+    #     """ゲーム終了時に呼び出し、ベスト更新なら True を返す。"""
+    #     if self._score.value > self._best.value:
+    #         self._best.value = self._score.value
+    #         return True
+    #     return False
