@@ -47,3 +47,32 @@ class HUD:
         return labels
 
         text = "ゲームオーバー"
+
+# ----------------------------------------------------------------------
+# Phase1: scenes.play が期待する「Kivy Widget としての HUD」
+# ----------------------------------------------------------------------
+def build_hud():
+    """HUD表示用の Label を作って返す（Phase1の最小実装）。
+
+    scenes.play.Play は、この戻り値を `add_widget()` し、
+    フレーム更新で `label.text = ...` のように直接書き換える。
+
+    つまり、この関数の責務は「テキストを書き換えられる Label を用意する」だけ。
+    - スコア計算や難易度判定などは core 側の責務（後続フェーズで接続）
+    """
+    from kivy.uix.label import Label
+    from kivy.metrics import dp
+
+    lbl = Label(
+        text="Score: 0  Energy: 100",
+        size_hint=(None, None),
+        size=(dp(300), dp(80)),
+        pos=(dp(10), dp(10)),
+        halign="left",
+        valign="bottom",
+        font_size=dp(16),
+    )
+    # halign/valign を効かせるために text_size を与える
+    lbl.text_size = lbl.size
+    return lbl
+
