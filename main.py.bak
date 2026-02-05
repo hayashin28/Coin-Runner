@@ -43,9 +43,6 @@ if __name__=="__main__":
 - 橋渡し：A（Play）で起きた出来事をB（Scoring/画面遷移）へ伝える役。
 - ScreenManager：複数の画面（Screen）を切り替えるコンテナ。
 """
-
-Exception
-from config import P
 from kivymd.app import MDApp
 from kivy.core.window import Window
 from kivy.uix.screenmanager import ScreenManager, Screen

@@ -45,5 +45,3 @@ class HUD:
         # if hasattr(self.svc_s, "best"):
         #     labels["best"] = f"Best: {self.svc_s.best}"
         return labels
-
-        text = "ゲームオーバー"

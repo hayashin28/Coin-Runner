@@ -29,19 +29,6 @@ GROUND_Y    = dp(P.GROUND_Y_PX)
 SPAWN_SPREAD= dp(P.SPAWN_SPREAD_PX)
 LOW_JUMP_H  = dp(P.JUMP_TIER_PX)
 
-# --- Day2: SpawnStateクラス ---
-class SpawnState:
-    """障害物／コイン出現管理用の簡易ステート"""
-    def __init__(self):
-        self.sequence = ['coin', 'ob_low', 'coin', 'ob_high', 'coin', 'ob_train']
-        self.index = 0
-    def next_item(self):
-        kind = self.sequence[self.index]
-        self.index += 1
-        if self.index >= len(self.sequence):
-            self.index = 0
-        return kind
-
 class GroundLine(FloatLayout):
     color = ListProperty([0.6,0.6,0.9,1])
 
@@ -50,11 +37,7 @@ class Play(Screen):
         self.root = FloatLayout()
         self.add_widget(self.root)
 
-        # --- Day2: SpawnState 初期化 ---
-        self.spawn_state = SpawnState()
-        self.debug = False  # F1で切替可能
-
-        # --- パララックス背景 ---
+        # --- D2: パララックス背景 ---
         try:
             self.bg_layer = ParallaxLayer(size=self.root.size)
             self.root.add_widget(self.bg_layer)
@@ -74,22 +57,15 @@ class Play(Screen):
         self.objects = []
         for i in range(6):
             o = Obj(size=(dp(42), dp(42)))
-            k = self.spawn_state.next_item()
-            o.kind = k
-            if k == 'coin':
-                o.color = [0.35,1,0.35,1]
-            elif k == 'ob_low':
-                o.color = [1,0.35,0.4,1]
-            elif k == 'ob_high':
-                o.color = [1,0.2,0.2,1]
-            elif k == 'ob_train':
-                o.color = [0.6,0.3,0.1,1]
+            k = pick_kind(P.COIN_RATE)
+            o.color = [0.35,1,0.35,1] if k=='coin' else [1,0.35,0.4,1]
             o.pos = (initial_x(SPAWN_SPREAD, True),
-                     GROUND_Y if 'low' in k or 'train' in k else GROUND_Y + LOW_JUMP_H)
+                    GROUND_Y if (pick_kind(0.5)=='ob') else GROUND_Y+LOW_JUMP_H)
+            o.kind = k
             o.vx = P.BASE_SPEED
             self.objects.append(o)
             self.root.add_widget(o)
-
+        
         # --- 状態 ---
         self.t=0.0; self.speed=P.BASE_SPEED; self.score=0
         self.energy=100; self.game_over=False
@@ -120,55 +96,31 @@ class Play(Screen):
             Window.unbind(on_key_down=self._on_key)
             if self._ev: self._ev.cancel()
         except Exception: pass
-
     def _on_key(self,_w,key,scancode,codepoint,keycode,*_):
         name=keycode[1]
-        # --- ゲームオーバー時のリスタート ---
         if self.game_over and name in ('enter','numpadenter','spacebar'):
             return self._restart()
-        # --- ジャンプ ---
         if name in ('up','spacebar'):
             self.player.try_jump(P)
             return True
-        # --- デバッグ表示切替 ---
-        if name == 'f1':
-            self.debug = not self.debug
-            return True
         return False
-
     def update(self, dt):
         if self.game_over: return
-
-        # --- 時間経過＆速度段階UP ---
+        # 速度段階UP
         self.t += dt
         if int(self.t) % 10 == 0:
             self.speed += P.SPEED_INCREMENT
-
-        # --- プレイヤー重力＆地面クランプ ---
+        # 重力＆地面クランプ
         self.player.vy += P.GRAVITY * dt
         self.player.y += self.player.vy * dt
         if self.player.y <= GROUND_Y:
             self.player.y = GROUND_Y
             self.player.vy = 0
             self.player.on_ground = True
-
-        # --- 障害物移動＆再配置（SpawnState使用） ---
+        # スクロール＆再配置
         for o in self.objects:
             o.x -= self.speed * dt
-
-            if o.right < 0:
-                next_kind = self.spawn_state.next_item()
-                o.kind = next_kind
-
-                if next_kind == 'coin':
-                    o.color = [0.35,1,0.35,1]; o.size=(dp(42),dp(42)); o.y=GROUND_Y+LOW_JUMP_H/2
-                elif next_kind == 'ob_low':
-                    o.color = [1,0.35,0.4,1]; o.size=(dp(42),dp(42)); o.y=GROUND_Y
-                elif next_kind == 'ob_high':
-                    o.color = [1,0.2,0.2,1]; o.size=(dp(42),dp(60)); o.y=GROUND_Y+LOW_JUMP_H
-                elif next_kind == 'ob_train':
-                    o.color = [0.6,0.3,0.1,1]; o.size=(dp(60),dp(42)); o.y=GROUND_Y
-
+            if o.x + o.width < 0:
                 o.x = initial_x(SPAWN_SPREAD, True)
                 o.kind = pick_kind(P.COIN_RATE)
                 o.color = [0.35,1,0.35,1] if o.kind == 'coin' else [1,0.35,0.4,1]
@@ -192,16 +144,14 @@ class Play(Screen):
         # 当たり判定（AABB）
         # HUD更新／ゲームオーバー表示
         self.lbl.text = f"Score: {self.score}  Energy: {self.energy}"
-        if self.debug:
-            self.lbl.text += f"\nTime:{self.t:.2f} Speed:{self.speed:.2f}"
         if self.game_over:
             self.lbl.text += "\nGame Over! Press Enter or Space to restart."
-
-        # --- パララックス背景 ---
+        # ---- D2: ここから追加ヒント（実装は自分で） ----
+        # D2-1: パララックス背景 tick（速度は self.speed * 比率）
+        # D2-1: パララックス背景 scroll
         if getattr(self, 'bg_layer', None):
             try:
-                for layer, ratio in zip(self.bg_layer.layers, [0.1,0.3,0.5]):
-                    layer.scroll(self.speed * ratio * dt)
+                self.bg_layer.scroll(self.speed * 0.2 * dt)
             except Exception:
                 pass
         # 背景レイヤーの scroll メソッドを呼び出す
@@ -214,15 +164,5 @@ class Play(Screen):
         self.t=0.0; self.speed=P.BASE_SPEED; self.score=0; self.energy=100; self.game_over=False
         self.player.pos=(dp(80),GROUND_Y); self.player.vy=0; self.player.on_ground=True
         for o in self.objects:
-            next_kind = self.spawn_state.next_item()
-            o.kind = next_kind
-            if next_kind == 'coin':
-                o.color = [0.35,1,0.35,1]; o.size=(dp(42),dp(42)); o.y=GROUND_Y+LOW_JUMP_H/2
-            elif next_kind == 'ob_low':
-                o.color = [1,0.35,0.4,1]; o.size=(dp(42),dp(42)); o.y=GROUND_Y
-            elif next_kind == 'ob_high':
-                o.color = [1,0.2,0.2,1]; o.size=(dp(42),dp(60)); o.y=GROUND_Y+LOW_JUMP_H
-            elif next_kind == 'ob_train':
-                o.color = [0.6,0.3,0.1,1]; o.size=(dp(60),dp(42)); o.y=GROUND_Y
-            o.x = initial_x(SPAWN_SPREAD, True)
+            o.pos=(initial_x(SPAWN_SPREAD, True), GROUND_Y if (pick_kind(0.5)=='ob') else GROUND_Y+LOW_JUMP_H)
         return True
