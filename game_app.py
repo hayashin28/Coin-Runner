@@ -1,37 +1,45 @@
 # -*- coding: utf-8 -*-
 """game_app.py
 
-【Phase1: 起動の境界を分離する】
-- main.py は「起動トリガー」だけにする（SRP）
-- GameApp(MDApp) はここに置き、画面構成（ScreenManager）と初期化を担当する
+【Phase2: TODO 実装（Day2〜Day6）】
+- main.py は起動トリガー
+- GameApp はアプリ境界として、依存（coreサービス）を生成して Scene に注入する（DI）
+- Best は save/best_score.json に永続化する（壊れていても落ちない）
 
-※このフェーズでは、core サービス（Scoring/Difficulty）などの依存注入はまだ接続しない。
-  まず「起動が通る」「画面が出る」を最短距離で安定させる。
+このフェーズでは「教材の TODO（生徒用スタブ）」を “講師用の完成形” として埋める。
 """
 
+from __future__ import annotations
+
+import os
 from kivymd.app import MDApp
 from kivy.core.window import Window
 from kivy.uix.screenmanager import ScreenManager
 
 from .config import P
+from .core.scoring import ScoringService
+from .core.difficulty import DifficultyService
+from .core.save_data import load_best
 from .scenes.title import Title
 from .scenes.play import Play
 
 
 class GameApp(MDApp):
-    """アプリ境界（起動・画面遷移の初期化）"""
-
     def build(self):
-        # ------------------------------------------------------------
-        # [Day1] 画面サイズ固定（教材都合で固定が分かりやすい）
-        # ------------------------------------------------------------
         Window.size = (P.WINDOW_W, P.WINDOW_H)
 
-        # ------------------------------------------------------------
-        # ScreenManager を組み立て、Title / Play を登録
-        # ------------------------------------------------------------
+        # --- save path（教材仕様：プロジェクト直下 save/best_score.json） ---
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        save_path = os.path.join(base_dir, "save", "best_score.json")
+
+        # --- core services ---
+        best = load_best(save_path)
+        scoring = ScoringService(avoid_point=getattr(P, "SCORE_RATE", 10), initial_best=best)
+        difficulty = DifficultyService()
+
+        # --- screens (DI) ---
         sm = ScreenManager()
-        sm.add_widget(Title(name="title"))
-        sm.add_widget(Play(name="play"))
+        sm.add_widget(Title(scoring=scoring, name="title"))
+        sm.add_widget(Play(scoring=scoring, difficulty=difficulty, save_path=save_path, name="play"))
         sm.current = "title"
         return sm

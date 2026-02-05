@@ -1,78 +1,54 @@
 # -*- coding: utf-8 -*-
 """ui.hud
 
-HUD（スコアやスピードなどのラベル文言）を組み立てるための小さなクラス。
+HUD（スコアやスピードなどの表示）を担当する小さな部品。
 
-【Day3 までの前提】
-- ScoringService / DifficultyService から現在値をもらい、
-  「Score: xxx」「Speed: x1.00 (Lv.1)」のような文字列を返す。
+Phase2 では、core のサービス（ScoringService / DifficultyService）を受け取り、
+表示文字列を組み立てる形を“正”にする。
 
-【Day5 の拡張案（生徒用TODOのイメージ）】
-- ベストスコア（ハイスコア）を追加で表示する。
-  例: "Score: 120  Best: 350" のような形式。
-- 必要であればコンボ数や残りエネルギーなどもここで整形してよい。
+ただし、Play は教材として Label 直書きでも回せるため、
+build_hud() は Label を返すファクトリとして残す。
 """
+
+from __future__ import annotations
 
 
 class HUD:
     def __init__(self, scoring_service, difficulty_service):
-        """HUD に必要なサービスを受け取って保持する。
-
-        args:
-            scoring_service: 現在スコアやベストスコアを管理するサービス。
-            difficulty_service: 現在の難易度レベル・速度倍率を管理するサービス。
-        """
         self.svc_s = scoring_service
         self.svc_d = difficulty_service
 
-    def get_labels(self) -> dict:
-        """画面に表示したいラベル文字列を dict で返す。
-
-        return の例:
-            {
-                "score": "Score: 120",
-                "speed": "Speed: x1.20 (Lv.3)",
-                # Day5:TODO 実装次第で "best": "Best: 350" などを追加してもよい
-            }
-        """
+    def build_text(self, energy: int, debug: dict | None = None, game_over: bool = False, new_record: bool = False) -> str:
         s = self.svc_s.current
+        b = self.svc_s.best
         d = self.svc_d.current
-        labels = {
-            "score": f"Score: {s}",
-            "speed": f"Speed: x{d.speed:.2f} (Lv.{d.stage})",
-        }
-        # Day5:TODO ハイスコア best を表示したい場合のヒント
-        # if hasattr(self.svc_s, "best"):
-        #     labels["best"] = f"Best: {self.svc_s.best}"
-        return labels
+        lines = [
+            f"Score: {s}   Best: {b}",
+            f"Speed: x{d.speed:.2f} (Lv.{d.stage})   Energy: {int(energy)}",
+        ]
+        if debug:
+            lines.append(f"t:{debug.get('t',0):.2f}  next_x:{debug.get('next_x',0):.1f}  last:{debug.get('last_kind','-')}")
+        if game_over:
+            lines.append("Game Over! Press Enter/Space to restart.")
+            if new_record:
+                lines.append("NEW RECORD! ✨")
+        return "\n".join(lines)
 
-        text = "ゲームオーバー"
 
-# ----------------------------------------------------------------------
-# Phase1: scenes.play が期待する「Kivy Widget としての HUD」
-# ----------------------------------------------------------------------
 def build_hud():
-    """HUD表示用の Label を作って返す（Phase1の最小実装）。
-
-    scenes.play.Play は、この戻り値を `add_widget()` し、
-    フレーム更新で `label.text = ...` のように直接書き換える。
-
-    つまり、この関数の責務は「テキストを書き換えられる Label を用意する」だけ。
-    - スコア計算や難易度判定などは core 側の責務（後続フェーズで接続）
-    """
+    """HUD表示用の Label を作って返す（Widget）。"""
     from kivy.uix.label import Label
     from kivy.metrics import dp
 
     lbl = Label(
-        text="Score: 0  Energy: 100",
+        text="Score: 0   Best: 0\nSpeed: x1.00 (Lv.1)   Energy: 100",
         size_hint=(None, None),
-        size=(dp(300), dp(80)),
+        size=(dp(420), dp(120)),
         pos=(dp(10), dp(10)),
         halign="left",
         valign="bottom",
         font_size=dp(16),
+        markup=False,
     )
-    # halign/valign を効かせるために text_size を与える
     lbl.text_size = lbl.size
     return lbl
-

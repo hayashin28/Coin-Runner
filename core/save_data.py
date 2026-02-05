@@ -1,21 +1,12 @@
 # -*- coding: utf-8 -*-
-"""core.save_data（Day6: 生徒用スタブ）
+"""core.save_data（Day6: Best保存）
 
-Day6のテーマ：「bestスコアをアプリを閉じても残す」。
+保存先（教材でおすすめの固定）：save/best_score.json
+フォーマット：{"best": 350}
 
-このファイルは “保存/読み込みの責務を分離する” ための置き場所です。
-Day6では ScoringService に全部書いてもOKですが、分けると読みやすくなります。
-
-方針（おすすめ）：
-- JSONで保存する（読みやすい）
-- 壊れていたら 0 に戻して続行（例外で落とさない）
-
-保存フォーマット例：
-{"best": 350}
-
-TODO：
-- load_best(path) を実装する（ファイルが無い/壊れている場合の扱い）
-- save_best(path, best) を実装する（ディレクトリ作成を含む）
+重要：
+- 壊れていても落ちない
+- ファイルが無くても続行
 """
 
 from __future__ import annotations
@@ -25,31 +16,50 @@ import os
 from typing import Any
 
 
+def _safe_int(v: Any, default: int = 0) -> int:
+    try:
+        i = int(v)
+    except Exception:
+        return default
+    return i if i >= 0 else 0
+
+
 def load_best(path: str) -> int:
     """bestスコアを読み込んで返す。
 
-    仕様（おすすめ）：
-    - ファイルが存在しない → 0 を返す
-    - JSONが壊れている → 0 を返す
-    - {"best": <int>} が取れない → 0 を返す
-
-    NOTE:
-    - “落ちないこと” が一番大事。ゲームは続行できるようにします。
+    仕様：
+    - ファイルが存在しない → 0
+    - JSONが壊れている → 0
+    - {"best": <int>} が取れない → 0
     """
-    # Day6:TODO ここを実装する（模範解答は講師用に別途）
-    return 0
+    try:
+        if not path or not os.path.exists(path):
+            return 0
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if not isinstance(data, dict):
+            return 0
+        return _safe_int(data.get("best", 0), 0)
+    except Exception:
+        return 0
 
 
 def save_best(path: str, best: int) -> None:
     """bestスコアをJSONに保存する。
 
-    仕様（おすすめ）：
-    - 保存先フォルダが無い → 作る（os.makedirs(..., exist_ok=True)）
-    - best は int に丸める
-    - 失敗しても例外でゲームを止めない（try/except で握ってログへ）
-
-    NOTE:
-    - ここも “落ちないこと” を優先します。
+    仕様：
+    - 保存先フォルダが無い → 作る
+    - 失敗しても例外でゲームを止めない
     """
-    # Day6:TODO ここを実装する（模範解答は講師用に別途）
-    pass
+    try:
+        if not path:
+            return
+        folder = os.path.dirname(path)
+        if folder:
+            os.makedirs(folder, exist_ok=True)
+        payload = {"best": _safe_int(best, 0)}
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False)
+    except Exception:
+        # 落ちないこと優先。必要なら print 等に差し替える。
+        return
